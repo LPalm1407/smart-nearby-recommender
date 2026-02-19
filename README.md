@@ -1,0 +1,1 @@
+Smart Nearby Places Recommender - A mood-based map app that suggest nearby places with filters for distance and ratings on a map
