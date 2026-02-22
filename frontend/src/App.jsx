@@ -9,6 +9,8 @@ function App() {
   const [mood, setMood] = useState("");
   const [distance, setDistance] = useState(5);
   const [minRating, setMinRating] = useState(0);
+  const [places, setPlaces] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(
@@ -23,6 +25,49 @@ function App() {
       }
     );
   }, []);
+
+  useEffect(() => {
+    if(!userPosition || !mood) return;
+
+    const fetchPlaces = async () => {
+      const [lat, lon] = userPosition;
+
+      setLoading(true);
+
+      try {
+        const res = await fetch(
+          `http://127.0.0.1:8000/places?mood=${mood}&lat=${lat}&lon=${lon}&distance=${distance}&min_rating=${minRating}`
+        );
+
+        if (!res.ok) {
+          console.error("Server error:", res.status);
+          setPlaces([]);
+          return;
+        }
+
+        const data = await res.json();
+
+        if(Array.isArray(data)) {
+          setPlaces(data);
+        } else {
+          console.error("Unexpected response:", data);
+          setPlaces([]);
+        }
+
+      } catch (err) {
+        console.error("Fetch error:", err);
+        setPlaces([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPlaces();
+
+    return () => {
+      controller.abort();
+    }
+  }, [userPosition, mood, distance, minRating]);
 
   function RecenterMap({position}) {
     const map = useMap();
@@ -52,6 +97,8 @@ function App() {
 
       <p>Selected Mood: {mood || "None"}</p>
 
+      {loading && <p>Loading places...</p>}
+
       <MapContainer center={[52.52, 13.41]} zoom={13} scrollWheelZoom={true} style={{height: "100vh", width: "120vh"}}>
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -60,11 +107,13 @@ function App() {
 
         {userPosition && <RecenterMap position={userPosition}/>}
 
-        {mood && dummyPlaces[mood].filter(place => place.distance <= distance && place.rating >= minRating).map((place, idx) => (
-        <Marker key={idx} position={place.position}>
-        <Popup>{place.name}<br/> Rating: {place.rating} <br/> Distance: {place.distance}</Popup>
-        </Marker>
-))}
+        {Array.isArray(places) && places.map((place, idx) => (
+          <Marker key={idx} position={[place.lat, place.lon]}>
+            <Popup>
+              {place.name} <br/> Rating: {place.rating} <br/> Distance: {place.distance} km
+            </Popup>
+          </Marker>
+        ))}
         </MapContainer>
     </div>
         
