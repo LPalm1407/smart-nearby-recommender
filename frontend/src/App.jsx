@@ -1,14 +1,36 @@
 import "leaflet/dist/leaflet.css";
-import { useState } from "react";
-import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
+import { useEffect, useState } from "react";
+import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import './App.css';
 
 
 function App() {
-  const position = [51.505, -0.09];
+  const [userPosition, setUserPosition] = useState(null);
   const [mood, setMood] = useState("");
   const [distance, setDistance] = useState(5);
   const [minRating, setMinRating] = useState(0);
+
+  useEffect(() => {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setUserPosition([
+          position.coords.latitude,
+          position.coords.longitude,
+        ]);
+      },
+      (error) => {
+        console.error("Error getting location:", error)
+      }
+    );
+  }, []);
+
+  function RecenterMap({position}) {
+    const map = useMap();
+    if(position) {
+      map.flyTo(position, 13, {animate: true});
+    }
+    return null
+  }
 
   return (
     <div style={{margin: "10px"}}>
@@ -30,11 +52,14 @@ function App() {
 
       <p>Selected Mood: {mood || "None"}</p>
 
-      <MapContainer center={position} zoom={13} scrollWheelZoom={true} style={{height: "100vh", width: "120vh"}}>
+      <MapContainer center={[52.52, 13.41]} zoom={13} scrollWheelZoom={true} style={{height: "100vh", width: "120vh"}}>
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+
+        {userPosition && <RecenterMap position={userPosition}/>}
+
         {mood && dummyPlaces[mood].filter(place => place.distance <= distance && place.rating >= minRating).map((place, idx) => (
         <Marker key={idx} position={place.position}>
         <Popup>{place.name}<br/> Rating: {place.rating} <br/> Distance: {place.distance}</Popup>
