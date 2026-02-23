@@ -11,8 +11,17 @@ function App() {
   const [minRating, setMinRating] = useState(0);
   const [places, setPlaces] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [manualLocation, setManualLocation] = useState("");
+  const [locationError, setLocationError] = useState(false);
+  const [pendingLocation, setPendingLocation] = useState(null);
 
   useEffect(() => {
+    if(!navigator.geolocation) {
+      setLocationError(true);
+      return;
+    }
+
     navigator.geolocation.getCurrentPosition(
       (position) => {
         setUserPosition([
@@ -20,54 +29,46 @@ function App() {
           position.coords.longitude,
         ]);
       },
-      (error) => {
-        console.error("Error getting location:", error)
+      () => {
+        setLocationError(true);
+        setError("Standort nicht verfügbar. Bitte manuell eingeben.")
       }
     );
   }, []);
 
-  useEffect(() => {
+  const fetchPlaces = async () => {
     if(!userPosition || !mood) return;
 
-    const fetchPlaces = async () => {
-      const [lat, lon] = userPosition;
+    const [lat,lon] = userPosition;
 
-      setLoading(true);
+    setLoading(true);
+    setError(null);
 
-      try {
-        const res = await fetch(
-          `http://127.0.0.1:8000/places?mood=${mood}&lat=${lat}&lon=${lon}&distance=${distance}&min_rating=${minRating}`
-        );
+    try {
+      const response = await fetch(
+        `http://127.0.0.1:8000/places?mood=${mood}&lat=${lat}&lon=${lon}&distance=${distance}&min_rating=${minRating}`
+      );
 
-        if (!res.ok) {
-          console.error("Server error:", res.status);
-          setPlaces([]);
-          return;
-        }
+      const data = await response.json();
 
-        const data = await res.json();
-
-        if(Array.isArray(data)) {
-          setPlaces(data);
-        } else {
-          console.error("Unexpected response:", data);
-          setPlaces([]);
-        }
-
-      } catch (err) {
-        console.error("Fetch error:", err);
-        setPlaces([]);
-      } finally {
-        setLoading(false);
+      if(data.status === "processing") {
+        setError("Server verabreitet Anfrage, bitte warten");
+        return;
       }
-    };
 
-    fetchPlaces();
+      setPlaces(data);
 
-    return () => {
-      controller.abort();
+    } catch (err) {
+      console.error(err);
+      setError("Fehler beim Laden der Orte")
+    } finally {
+       setLoading(false);
     }
-  }, [userPosition, mood, distance, minRating]);
+  };
+
+  useEffect(() => {
+    fetchPlaces();
+  }, [mood, distance, minRating, userPosition])
 
   function RecenterMap({position}) {
     const map = useMap();
@@ -76,6 +77,36 @@ function App() {
     }
     return null
   }
+
+  const handleManualLocation = async () => {
+    if(!manualLocation) return;
+
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${manualLocation}`
+      );
+
+      const data = await response.json();
+
+      if(data.length === 0) {
+        setError("Ort nicht gefunden");
+        return;
+      }
+
+      const lat = parseFloat(data[0].lat);
+      const lon = parseFloat(data[0].lon);
+
+      setPendingLocation({
+        name: data[0].display_name,
+        lat: parseFloat(data[0].lat),
+        lon: parseFloat(data[0].lon)
+      });
+      setLocationError(false);
+      setError(null);
+    } catch(err) {
+      setError("Fehler beim Abrufen des Standorts.")
+    }
+  };
 
   return (
     <div style={{margin: "10px"}}>
@@ -90,14 +121,36 @@ function App() {
         <input type="number" value={minRating} onChange={(e) => setMinRating(Number(e.target.value))} min={0} max={5} step={0.1}></input>
       </label>
 
-      <button onClick={() => setMood("Work")}>Work</button>
-      <button onClick={() => setMood("Date")}>Date</button>
-      <button onClick={() => setMood("Quick Bite")}>Quick Bite</button>
-      <button onClick={() => setMood("Budget")}>Budget</button>
+      <button onClick={() => setMood("work")}>Work</button>
+      <button onClick={() => setMood("date")}>Date</button>
+      <button onClick={() => setMood("quick_bite")}>Quick Bite</button>
+      <button onClick={() => setMood("budget")}>Budget</button>
 
       <p>Selected Mood: {mood || "None"}</p>
 
+      {locationError && (
+        <div style={{marginTop: "10px"}}>
+          <input type="text" placeholder="Stadt eingeben" value={manualLocation} onChange={(e) => setManualLocation(e.target.value)}/>
+          <button onClick={handleManualLocation}>Standort setzen</button>
+        </div>
+      )}
+
+      {pendingLocation && (
+        <div style={{marginTop: "10px"}}>
+          <p>Gefundener Ort</p>
+          <p>{pendingLocation.name}</p>
+          <button onClick={ () => {
+            setUserPosition[pendingLocation.lat, pendingLocation.lon];
+            setPendingLocation(null);
+            setLocationError(false);
+          }}>Bestätigen</button>
+          <button onClick={() => setPendingLocation(null)}>Abbrechen</button>
+        </div>
+      )}
+
       {loading && <p>Loading places...</p>}
+      {error && <p style={{color: "red"}}>{error}</p>}
+      {mood && !loading && !error && places.length === 0 && (<p>no location found.</p>)}
 
       <MapContainer center={[52.52, 13.41]} zoom={13} scrollWheelZoom={true} style={{height: "100vh", width: "120vh"}}>
         <TileLayer
@@ -107,10 +160,10 @@ function App() {
 
         {userPosition && <RecenterMap position={userPosition}/>}
 
-        {Array.isArray(places) && places.map((place, idx) => (
+        {places.map((place, idx) => (
           <Marker key={idx} position={[place.lat, place.lon]}>
             <Popup>
-              {place.name} <br/> Rating: {place.rating} <br/> Distance: {place.distance} km
+              {place.name}
             </Popup>
           </Marker>
         ))}
@@ -119,25 +172,5 @@ function App() {
         
   )
 }
-
-const dummyPlaces = {
-  Work: [
-    { name: "Cafe Productivity", position: [51.505, -0.08], rating: 4.2, distance: 2 },
-    { name: "Co-Working Space", position: [51.51, -0.1] , rating: 4.5, distance: 5}
-  ],
-  Date: [
-    { name: "Romantic Restaurant", position: [51.507, -0.09], rating: 4.8, distance: 3 },
-    { name: "City Park", position: [51.503, -0.07], rating: 4.0, distance: 1 }
-  ],
-  "Quick Bite": [
-    { name: "Fast Food Place", position: [51.506, -0.095], rating: 3.8, distance: 3 },
-    { name: "Bakery Corner", position: [51.509, -0.08], rating: 4.1, distance: 4 }
-  ],
-  Budget: [
-    { name: "Cheap Eats", position: [51.504, -0.085], rating: 3.5, distance: 1 },
-    { name: "Budget Cafe", position: [51.508, -0.09], rating: 4.0, distance: 5 }
-  ]
-};
-
 
 export default App
