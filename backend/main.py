@@ -53,6 +53,8 @@ async def get_places(mood: str, lat: float, lon: float, distance: float):
         tags = get_osm_tags_for_mood(mood)
         query = build_overpass_query(tags, lat, lon, distance)
 
+        print("Debug:", query)
+
         async with httpx.AsyncClient() as client:
             response = await client.post(OVERPASS_URL, data={"data": query}, timeout=5)
             response.raise_for_status()
@@ -92,6 +94,6 @@ def build_overpass_query(tags, lat, lon, distance):
         key, value = tag.split("=")
         tag_filters += f'node["{key}"="{value}"](around:{int(distance * 1000)}, {lat}, {lon});\n'
 
-        query = f"""[out:json({tag_filters});out;"""
-        return query
+    query = f"""[out:json];({tag_filters});out;"""
+    return query
     

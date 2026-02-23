@@ -2,7 +2,7 @@ import asyncio
 from datetime import datetime
 
 class AsyncCache:
-    def init(self, ttl_seconds=300):
+    def __init__(self, ttl_seconds=300):
         self.cache = {}
         self.locks = {}
         self.in_progress = set()

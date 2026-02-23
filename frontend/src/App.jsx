@@ -163,7 +163,8 @@ function App() {
         {places.map((place, idx) => (
           <Marker key={idx} position={[place.lat, place.lon]}>
             <Popup>
-              {place.name}
+              {place.name}<br/>
+              {place.distance}
             </Popup>
           </Marker>
         ))}
