@@ -119,39 +119,6 @@ function App() {
     }
   };
 
-  function haversine(lat1, lon1, lat2, lon2) {
-    const R = 6371;
-    const toRad = deg => deg * Math.PI / 180;
-  
-    const dLat = toRad(lat2 - lat1);
-    const dLon = toRad(lon2 - lon1);
-  
-    const a =
-      Math.sin(dLat / 2) ** 2 +
-      Math.cos(toRad(lat1)) *
-      Math.cos(toRad(lat2)) *
-      Math.sin(dLon / 2) ** 2;
-  
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  }
-
-  const placesWithDistance = places.map(place => {
-    if (!userPosition) return place;
-  
-    const distance = haversine(
-      Number(userPosition[0]),
-      Number(userPosition[1]),
-      Number(place.lat),
-      Number(place.lon)
-    );
-  
-    return {
-      ...place,
-      distance: distance.toFixed(2)
-    };
-  });
-
   return (
     <div style={{margin: "10px"}}>
 
@@ -215,11 +182,12 @@ function App() {
         {userPosition &&<RecenterMap position={userPosition}/>}
         {userPosition && <Marker position={userPosition} icon={redIcon}><Popup>You</Popup></Marker>}
 
-        {placesWithDistance.map((place, idx) => (
+        {places.map((place, idx) => (
           <Marker key={idx} position={[place.lat, place.lon]}>
             <Popup>
               {place.name}<br/>
-              {place.distance}
+              Distance: {place.distance}km<br/>
+              Rating: {place.minRating}
             </Popup>
           </Marker>
         ))}

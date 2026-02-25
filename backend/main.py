@@ -7,6 +7,8 @@ import requests
 import httpx
 import asyncio
 from cacheUtils import AsyncCache
+import math
+import random
 
 OVERPASS_URL = "https://overpass-api.de/api/interpreter"
 
@@ -46,7 +48,7 @@ def get_cache(key):
 cacheManager = AsyncCache(ttl_seconds=300)
 
 @app.get("/places")
-async def get_places(mood: str, lat: float, lon: float, distance: float):
+async def get_places(mood: str, lat: float, lon: float, distance: float, min_rating: float):
     lat = float(f"{lat:.3f}")
     lon = float(f"{lon:.3f}")
     key = make_cache_key(mood, lat, lon, distance, 0)
@@ -67,12 +69,22 @@ async def get_places(mood: str, lat: float, lon: float, distance: float):
             name = element.get("tags", {}).get("name")
             if not name: 
                 continue
+
+            placeLat = element["lat"]
+            placeLon = element["lon"]
+
+            dist = haversine(lat, lon, placeLat, placeLon)
+            rating = generateRating(dist)
+
+            if rating < min_rating:
+                continue
+
             results.append({
                 "name": name,
                 "lat": element["lat"],
                 "lon": element["lon"],
-                "distance": 0,
-                "rating": 0  
+                "distance": round(dist, 2),
+                "minRating": rating  
             })
         return results
     
@@ -99,3 +111,21 @@ def build_overpass_query(tags, lat, lon, distance):
     query = f"""[out:json];({tag_filters});out;"""
     return query
     
+def haversine(lat1,lon1,lat2,lon2):
+    R = 6371
+
+    phi1 = math.radians(lat1)
+    phi2 = math.radians(lat2)
+    dphi = math.radians(lat2 -lat1)
+    dlambda = math.radians(lon2 - lon1)
+
+    a = math.sin(dphi / 2)**2 + math.cos(phi1)*math.cos(phi2)*math.sin(dlambda/2)**2
+    c = 2 * math.asin(math.sqrt(a))
+
+    return R * c
+
+def generateRating(distance):
+    base = max(0, 5 - distance * 0.5)
+    noise = random.uniform(-0.3,0.3)
+    rating = min(5, max(1, base + noise))
+    return round(rating, 1)
