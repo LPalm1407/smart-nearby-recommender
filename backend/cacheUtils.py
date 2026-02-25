@@ -31,13 +31,13 @@ class AsyncCache:
     
     async def runWithLock(self, key, coro):
         cached = self.get(key)
-        if cached:
+        if cached is not None:
             return cached
         
         lock = self.getLock(key)
         async with lock:
             cached = self.get(key)
-            if cached:
+            if cached is not None:
                 return cached
             
             if key in self.in_progress:

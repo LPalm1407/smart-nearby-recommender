@@ -47,6 +47,8 @@ cacheManager = AsyncCache(ttl_seconds=300)
 
 @app.get("/places")
 async def get_places(mood: str, lat: float, lon: float, distance: float):
+    lat = float(f"{lat:.3f}")
+    lon = float(f"{lon:.3f}")
     key = make_cache_key(mood, lat, lon, distance, 0)
 
     async def fetchOverpass():
@@ -56,7 +58,7 @@ async def get_places(mood: str, lat: float, lon: float, distance: float):
         print("Debug:", query)
 
         async with httpx.AsyncClient() as client:
-            response = await client.post(OVERPASS_URL, data={"data": query}, timeout=5)
+            response = await client.post(OVERPASS_URL, data={"data": query}, timeout=120)
             response.raise_for_status()
             osm_data = response.json()
 

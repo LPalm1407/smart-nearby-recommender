@@ -1,7 +1,17 @@
+import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useEffect, useState } from "react";
 import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import './App.css';
+
+const redIcon = new L.Icon({
+  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.3/dist/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+});
 
 
 function App() {
@@ -111,6 +121,16 @@ function App() {
   return (
     <div style={{margin: "10px"}}>
 
+      <h1>Nearby Places Recomender</h1>
+
+      <button onClick={() => setMood("work")}>Work</button>
+      <button onClick={() => setMood("date")}>Date</button>
+      <button onClick={() => setMood("quick_bite")}>Quick Bite</button>
+      <button onClick={() => setMood("budget")}>Budget</button>
+
+      <br/>
+      <br/>
+
       <label>
         Max Distance (km):
         <input type="number" value={distance} onChange={(e) => setDistance(Number(e.target.value))} min={0}></input>
@@ -121,10 +141,7 @@ function App() {
         <input type="number" value={minRating} onChange={(e) => setMinRating(Number(e.target.value))} min={0} max={5} step={0.1}></input>
       </label>
 
-      <button onClick={() => setMood("work")}>Work</button>
-      <button onClick={() => setMood("date")}>Date</button>
-      <button onClick={() => setMood("quick_bite")}>Quick Bite</button>
-      <button onClick={() => setMood("budget")}>Budget</button>
+      
 
       <p>Selected Mood: {mood || "None"}</p>
 
@@ -152,13 +169,14 @@ function App() {
       {error && <p style={{color: "red"}}>{error}</p>}
       {mood && !loading && !error && places.length === 0 && (<p>no location found.</p>)}
 
-      <MapContainer center={[52.52, 13.41]} zoom={13} scrollWheelZoom={true} style={{height: "100vh", width: "120vh"}}>
+      <MapContainer center={[52.52, 13.41]} zoom={13} scrollWheelZoom={true} style={{height: "80vh", width: "120vh"}}>
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
-        {userPosition && <RecenterMap position={userPosition}/>}
+        {userPosition &&<RecenterMap position={userPosition}/>}
+        {userPosition && <Marker position={userPosition} icon={redIcon}><Popup>You</Popup></Marker>}
 
         {places.map((place, idx) => (
           <Marker key={idx} position={[place.lat, place.lon]}>
