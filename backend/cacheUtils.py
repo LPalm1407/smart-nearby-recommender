@@ -10,13 +10,14 @@ class AsyncCache:
 
     def isExpired(self, key):
         entry = self.cache.get(key)
-        if not entry:
+        if entry is None:
             return True
         return (datetime.now() - entry["timestamp"]).total_seconds() > self.ttl
     
     def get(self, key):
         if key in self.cache and not self.isExpired(key):
             return self.cache[key]["data"]
+        
         if key in self.cache:
             del self.cache[key]
         return None
@@ -32,23 +33,18 @@ class AsyncCache:
     async def runWithLock(self, key, coro):
         cached = self.get(key)
         if cached is not None:
+            print("Cache HIT")
             return cached
         
         lock = self.getLock(key)
+
         async with lock:
             cached = self.get(key)
             if cached is not None:
+                print("Cache HIT (after lock)")
                 return cached
             
-            if key in self.in_progress:
-                return {"status": "processing"}
-            self.in_progress.add(key)
-
-            try:
-                result = await coro()
-                self.set(key, result)
-                return result
-            finally:
-                self.in_progress.remove(key)
-                if not lock.locked():
-                    del self.locks[key]
+            print("Cache miss - Calling API")
+            result = await coro()
+            self.set(key, result)
+            return result

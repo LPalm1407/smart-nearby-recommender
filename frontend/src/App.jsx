@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import './App.css';
 
+
 const redIcon = new L.Icon({
   iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png",
   shadowUrl: "https://unpkg.com/leaflet@1.9.3/dist/images/marker-shadow.png",
@@ -118,6 +119,39 @@ function App() {
     }
   };
 
+  function haversine(lat1, lon1, lat2, lon2) {
+    const R = 6371;
+    const toRad = deg => deg * Math.PI / 180;
+  
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+  
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(toRad(lat1)) *
+      Math.cos(toRad(lat2)) *
+      Math.sin(dLon / 2) ** 2;
+  
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  const placesWithDistance = places.map(place => {
+    if (!userPosition) return place;
+  
+    const distance = haversine(
+      Number(userPosition[0]),
+      Number(userPosition[1]),
+      Number(place.lat),
+      Number(place.lon)
+    );
+  
+    return {
+      ...place,
+      distance: distance.toFixed(2)
+    };
+  });
+
   return (
     <div style={{margin: "10px"}}>
 
@@ -141,8 +175,6 @@ function App() {
         <input type="number" value={minRating} onChange={(e) => setMinRating(Number(e.target.value))} min={0} max={5} step={0.1}></input>
       </label>
 
-      
-
       <p>Selected Mood: {mood || "None"}</p>
 
       {locationError && (
@@ -157,13 +189,14 @@ function App() {
           <p>Gefundener Ort</p>
           <p>{pendingLocation.name}</p>
           <button onClick={ () => {
-            setUserPosition[pendingLocation.lat, pendingLocation.lon];
+            setUserPosition([pendingLocation.lat, pendingLocation.lon]);
             setPendingLocation(null);
             setLocationError(false);
           }}>Bestätigen</button>
-          <button onClick={() => setPendingLocation(null)}>Abbrechen</button>
+          <button onClick={() => {setPendingLocation(null), setLocationError(true)}}>Abbrechen</button>
         </div>
       )}
+      <br/>
 
       {loading && <p>Loading places...</p>}
       {error && <p style={{color: "red"}}>{error}</p>}
@@ -175,10 +208,14 @@ function App() {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
+        {pendingLocation && <RecenterMap position={pendingLocation}/>}
+        {pendingLocation && <Marker position={pendingLocation} icon={redIcon}></Marker>}
+        
+
         {userPosition &&<RecenterMap position={userPosition}/>}
         {userPosition && <Marker position={userPosition} icon={redIcon}><Popup>You</Popup></Marker>}
 
-        {places.map((place, idx) => (
+        {placesWithDistance.map((place, idx) => (
           <Marker key={idx} position={[place.lat, place.lon]}>
             <Popup>
               {place.name}<br/>
@@ -188,7 +225,6 @@ function App() {
         ))}
         </MapContainer>
     </div>
-        
   )
 }
 
