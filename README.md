@@ -10,7 +10,7 @@ This project is a location based recommendation system that suggests nearby plac
 - Backend API built with FastAPI
 - React frontend for interactive UI
 - Interactive map visualization built with Leaflet, which animates to your location and shows nearby places with distance and ratings(not real)
-- Dynamic place recommendations threw moods
+- Dynamic place recommendations through moods
 
 
 ## Features
@@ -54,7 +54,7 @@ React + Leaflet Frontend -> FastAPI Backend -> OpenStreetMap Data
 1. Clone the repository 
 2. Install backend dependencies 
 3. Install frontend dependencies
-4. Activate the venv enviroment in python
+4. Activate the venv environment in python
 5. Start the backend server
 6. Install npm and choose React
 7. Start the frontend
