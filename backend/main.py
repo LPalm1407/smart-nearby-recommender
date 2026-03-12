@@ -32,10 +32,10 @@ in_progress = set()
 locks = {}
 
 
-def make_cache_key(mood, lat, lon, distance, min_rating):
+def make_cache_key(mood, lat, lon, distance, minRating):
     lat = round(lat, 3)
     lon = round(lon, 3)
-    return f"{mood}_{lat}_{lon}_{distance}_{min_rating}"
+    return f"{mood}_{lat}_{lon}_{distance}_{minRating}"
 
 def get_cache(key):
     entry = cache.get(key)
@@ -48,10 +48,10 @@ def get_cache(key):
 cacheManager = AsyncCache(ttl_seconds=300)
 
 @app.get("/places")
-async def get_places(mood: str, lat: float, lon: float, distance: float, min_rating: float):
+async def get_places(mood: str, lat: float, lon: float, distance: float, minRating: float):
     lat = float(f"{lat:.3f}")
     lon = float(f"{lon:.3f}")
-    key = make_cache_key(mood, lat, lon, distance, 0)
+    key = make_cache_key(mood, lat, lon, distance, minRating)
 
     async def fetchOverpass():
         tags = get_osm_tags_for_mood(mood)
@@ -76,7 +76,7 @@ async def get_places(mood: str, lat: float, lon: float, distance: float, min_rat
             dist = haversine(lat, lon, placeLat, placeLon)
             rating = generateRating(dist)
 
-            if rating < min_rating:
+            if rating < minRating:
                 continue
 
             results.append({

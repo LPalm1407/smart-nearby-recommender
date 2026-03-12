@@ -14,7 +14,6 @@ const redIcon = new L.Icon({
   shadowSize: [41, 41],
 });
 
-
 function App() {
   const [userPosition, setUserPosition] = useState(null);
   const [mood, setMood] = useState("");
@@ -57,7 +56,7 @@ function App() {
 
     try {
       const response = await fetch(
-        `http://127.0.0.1:8000/places?mood=${mood}&lat=${lat}&lon=${lon}&distance=${distance}&min_rating=${minRating}`
+        `http://127.0.0.1:8000/places?mood=${mood}&lat=${lat}&lon=${lon}&distance=${distance}&minRating=${minRating}`
       );
 
       const data = await response.json();
@@ -124,13 +123,7 @@ function App() {
 
       <h1>Nearby Places Recomender</h1>
 
-      <button onClick={() => setMood("work")}>Work</button>
-      <button onClick={() => setMood("date")}>Date</button>
-      <button onClick={() => setMood("quick_bite")}>Quick Bite</button>
-      <button onClick={() => setMood("budget")}>Budget</button>
-
-      <br/>
-      <br/>
+      <h2>Choose a filter:</h2>
 
       <label>
         Max Distance (km):
@@ -142,7 +135,17 @@ function App() {
         <input type="number" value={minRating} onChange={(e) => setMinRating(Number(e.target.value))} min={0} max={5} step={0.1}></input>
       </label>
 
-      <p>Selected Mood: {mood || "None"}</p>
+      <br/>
+      <h2>Choose a mood:</h2>
+
+      <button onClick={() => setMood("work")}>Work</button>
+      <button onClick={() => setMood("date")}>Date</button>
+      <button onClick={() => setMood("quick_bite")}>Quick Bite</button>
+      <button onClick={() => setMood("budget")}>Budget</button>
+
+      <br/>
+
+      <h3>Selected Mood: {mood || "None"}</h3>
 
       {locationError && (
         <div style={{marginTop: "10px"}}>
@@ -178,7 +181,6 @@ function App() {
         {pendingLocation && <RecenterMap position={pendingLocation}/>}
         {pendingLocation && <Marker position={pendingLocation} icon={redIcon}></Marker>}
         
-
         {userPosition &&<RecenterMap position={userPosition}/>}
         {userPosition && <Marker position={userPosition} icon={redIcon}><Popup>You</Popup></Marker>}
 
